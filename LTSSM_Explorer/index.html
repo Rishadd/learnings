@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PCIe Gen6 LTSSM Explorer</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f7fb;
+      color: #222;
+    }
+
+    header {
+      background: #1f3c88;
+      color: white;
+      padding: 16px 20px;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      min-height: calc(100vh - 64px);
+    }
+
+    .sidebar {
+      background: white;
+      border-right: 1px solid #d9e1ef;
+      padding: 16px;
+    }
+
+    .sidebar h2 {
+      margin-top: 0;
+      font-size: 18px;
+    }
+
+    .section-btn {
+      display: block;
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      border: 1px solid #c7d2e8;
+      border-radius: 6px;
+      background: #eef3ff;
+      color: #1f2d3d;
+      text-align: left;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .section-btn:hover {
+      background: #dfe9ff;
+    }
+
+    .section-btn.active {
+      background: #1f3c88;
+      color: white;
+      border-color: #1f3c88;
+    }
+
+    .content {
+      padding: 20px;
+    }
+
+    .panel {
+      background: white;
+      border: 1px solid #d9e1ef;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .panel h2 {
+      margin-top: 0;
+      margin-bottom: 12px;
+    }
+
+    .current-section {
+      margin-bottom: 12px;
+      color: #4b5563;
+      font-size: 14px;
+    }
+
+    .section-description {
+      font-size: 15px;
+      line-height: 1.6;
+      color: #374151;
+      margin-bottom: 16px;
+    }
+
+    .diagram-container {
+      border: 1px dashed #b9c7e6;
+      border-radius: 8px;
+      background: #fafcff;
+      min-height: 500px;
+      padding: 16px;
+    }
+
+    .diagram-object {
+      width: 100%;
+      height: 72vh;
+      min-height: 480px;
+      border: none;
+      background: white;
+    }
+
+    .placeholder {
+      color: #6b7280;
+      text-align: center;
+      font-size: 16px;
+      line-height: 1.5;
+      padding: 40px 20px;
+    }
+
+    .filters-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+
+    .filter-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .filter-group label {
+      font-size: 12px;
+      color: #4b5563;
+      font-weight: 600;
+    }
+
+    .filter-group input {
+      min-width: 260px;
+      padding: 8px 10px;
+      border: 1px solid #c7d2e8;
+      border-radius: 6px;
+      background: white;
+      font-size: 14px;
+    }
+
+    .filter-reset-btn,
+    .small-btn {
+      padding: 8px 12px;
+      border: 1px solid #c7d2e8;
+      border-radius: 6px;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+      height: fit-content;
+    }
+
+    .filter-reset-btn:hover,
+    .small-btn:hover {
+      background: #f8fafc;
+    }
+
+    .state-filter-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      background: #f8fbff;
+      border: 1px solid #d9e1ef;
+      border-radius: 8px;
+    }
+
+    .state-filter-label {
+      font-size: 13px;
+      color: #4b5563;
+      font-weight: 600;
+    }
+
+    .state-filter-value {
+      font-size: 14px;
+      color: #1f2d3d;
+      font-weight: 700;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+
+    th, td {
+      border: 1px solid #d9e1ef;
+      padding: 10px;
+      text-align: left;
+      vertical-align: top;
+      font-size: 14px;
+    }
+
+    th {
+      background: #eef3ff;
+      color: #1f2d3d;
+    }
+
+    td {
+      background: #fff;
+      color: #2f3a4a;
+    }
+
+    .condition-arc {
+      font-weight: 700;
+      color: #1f3c88;
+    }
+
+    .condition-text {
+      color: #2f3a4a;
+      line-height: 1.5;
+    }
+
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .tag {
+      display: inline-block;
+      background: #eef2ff;
+      color: #4338ca;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .detail-panel {
+      margin-top: 16px;
+      padding: 14px 16px;
+      border: 1px solid #d9e1ef;
+      border-radius: 8px;
+      background: #fafcff;
+    }
+
+    .detail-panel h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+
+    .detail-panel p {
+      margin: 6px 0;
+      line-height: 1.6;
+      color: #374151;
+    }
+
+    .detail-panel ul {
+      margin-top: 6px;
+      margin-bottom: 0;
+      padding-left: 18px;
+    }
+
+    .detail-panel li {
+      margin-bottom: 6px;
+      line-height: 1.5;
+      color: #374151;
+    }
+
+    .close-btn {
+      margin-top: 10px;
+      border: 1px solid #c7d2e8;
+      background: white;
+      border-radius: 6px;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PCIe Gen6 LTSSM Explorer</h1>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <h2>Main States</h2>
+      <button class="section-btn active" data-section="detect">Detect</button>
+      <button class="section-btn" data-section="polling">Polling</button>
+      <button class="section-btn" data-section="configuration">Configuration</button>
+      <button class="section-btn" data-section="recovery">Recovery</button>
+      <button class="section-btn" data-section="equalization">Equalization</button>
+      <button class="section-btn" data-section="power">Power Management</button>
+      <button class="section-btn" data-section="exceptional">Exceptional States</button>
+    </aside>
+
+    <main class="content">
+      <div class="panel">
+        <h2>Sub-State Transition Diagram</h2>
+
+        <div id="currentSectionLabel" class="current-section">
+          Showing: Detect
+        </div>
+
+        <div id="sectionDescription" class="section-description">
+          Detect receiver presence and determine whether the link can proceed into Polling.
+        </div>
+
+        <div class="diagram-container" id="diagramContainer">
+          <div class="placeholder">Loading diagram...</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Transitions</h2>
+
+        <div id="stateFilterBar" class="state-filter-bar hidden">
+          <span class="state-filter-label">SVG-selected state:</span>
+          <span id="stateFilterValue" class="state-filter-value"></span>
+          <button id="clearStateFilterBtn" class="small-btn" type="button">Clear State Filter</button>
+        </div>
+
+        <div class="filters-bar">
+          <div class="filter-group">
+            <label for="searchInput">Search</label>
+            <input id="searchInput" type="text" placeholder="Search from / to / condition / tags / details" />
+          </div>
+
+          <button id="resetFiltersBtn" class="filter-reset-btn" type="button">
+            Reset Filters
+          </button>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th>From</th>
+              <th>To</th>
+              <th>Condition</th>
+              <th>Context Tags</th>
+              <th id="detailsColumnHeader">Details</th>
+            </tr>
+          </thead>
+          <tbody id="transitionTableBody"></tbody>
+        </table>
+
+        <div id="specDetailPanel" class="detail-panel hidden">
+          <h3 id="specDetailTitle">Spec Transition Details</h3>
+          <div id="specDetailBody"></div>
+          <button class="close-btn" id="closeSpecDetailBtn" type="button">Close</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="ltssm_data.js"></script>
+  <script src="ltssm_state_details.js"></script>
+  <script src="ltssm_legal.js"></script>
+  <script src="ltssm_legal_view.js"></script>
+  <script src="ltssm_app.js"></script>
+</body>
+</html>
